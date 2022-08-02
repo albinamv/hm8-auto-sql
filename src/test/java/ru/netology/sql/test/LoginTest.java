@@ -2,6 +2,9 @@ package ru.netology.sql.test;
 
 import lombok.SneakyThrows;
 import lombok.val;
+import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.ScalarHandler;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -28,25 +31,41 @@ class LoginTest {
 
     @Test
     @SneakyThrows
-    void shouldLogin() {
-        var authInfo = DataHelper.getAuthInfo(); // получаем данные подготовленного пользователя
+    void shouldLoginDBUtils() {
+        var authInfo = DataHelper.getOtherAuthInfo(); // получаем данные подготовленного пользователя
         var verificationPage = loginPage.validLogin(authInfo); // логинимся
         var authCodeSQL = "SELECT code FROM auth_codes WHERE user_id = (SELECT id FROM users WHERE login = ?) ORDER BY created DESC LIMIT 1;";
+        var runner = new QueryRunner();
 
         try (
                 var conn = DriverManager.getConnection(
                         "jdbc:mysql://localhost:3306/app", "app", "pass"
                 );
-                var codeStmt = conn.prepareStatement(authCodeSQL);
         ) {
-            codeStmt.setString(1, "vasya");
-            try (var rs = codeStmt.executeQuery()) {
-                if (rs.next()) {
-                    // выборка значения по индексу столбца (нумерация с 1)
-                    String authCode = rs.getString("code");
-                    dashboardPage = verificationPage.validVerify(authCode); // вводим код и попадаем на страницу с картами
-                }
-            }
+            String code = runner.query(conn, authCodeSQL, new ScalarHandler<>(), authInfo.getLogin());
+            dashboardPage = verificationPage.validVerify(code);
+        }
+    }
+
+    @AfterAll
+    @SneakyThrows
+    void cleanDB() {
+        var runner = new QueryRunner();
+        var clearUsersSQL = "DELETE FROM users;";
+        var clearCardsSQL = "DELETE FROM cards;";
+        var clearCodesSQL = "DELETE FROM auth_codes;";
+        var clearTransactionsSQL = "DELETE FROM card_transactions;";
+
+        try (
+                var conn = DriverManager.getConnection(
+                        "jdbc:mysql://localhost:3306/app", "app", "pass"
+                );
+
+        ) {
+            runner.execute(conn, clearCodesSQL);
+            runner.execute(conn, clearTransactionsSQL);
+            runner.execute(conn, clearCardsSQL);
+            runner.execute(conn, clearUsersSQL);
         }
     }
 
