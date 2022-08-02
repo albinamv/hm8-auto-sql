@@ -1,38 +1,46 @@
 package ru.netology.sql.data;
 
+import com.github.javafaker.Faker;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Value;
 
-// хорошая практика — использовать отдельный класс для генерации тестовых данных
+@Getter
 public class DataHelper {
+
+    // для вставки нового пользователя с уже зашифрованным паролем
+    public static String getValidPasswordHash() {
+        return new String("$2a$10$du24T/7GER8hkaBWpN2hUeWbu/waOhmnedNewd5n3OxtrqyINzGQK");
+    }
+
     private DataHelper() {
     }
 
     // вложенный класс
     // для LoginPage
     @Value
+    @AllArgsConstructor
     public static class AuthInfo {
+        private String id;
         private String login;
         private String password;
+
+        public AuthInfo(String login, String password) {
+            this.login = login;
+            this.password = password;
+            id = null;
+        }
     }
 
-    // эти демо данные записываются SUT в БД
-    public static AuthInfo getAuthInfo() {
-        return new AuthInfo("vasya", "qwerty123");
+    public static AuthInfo generateRegisteredUser() {
+        var faker = new Faker();
+        return new AuthInfo(faker.random().hex(36), faker.name().username(), "qwerty123");
     }
 
-    public static AuthInfo getOtherAuthInfo() {
-        return new AuthInfo("petya", "123qwerty");
-    }
-
-    // вложенный класс
-    // для VerificationPage
-    @Value
-    public static class VerificationCode {
-        private String code;
-    }
-
-    public static VerificationCode getVerificationCodeFor(AuthInfo authInfo) {
-        return new VerificationCode("12345");
+    public static AuthInfo generateUnregisteredUser() {
+        var faker = new Faker();
+        return new AuthInfo(faker.name().username(), faker.internet().password());
     }
 
 }
