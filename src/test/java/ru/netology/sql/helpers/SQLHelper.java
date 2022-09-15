@@ -32,26 +32,27 @@ public class SQLHelper {
     @SneakyThrows
     public static String getValidAuthCode(String login) {
         var authCodeSQL = "SELECT code FROM auth_codes WHERE user_id = (SELECT id FROM users WHERE login = ?) ORDER BY created DESC LIMIT 1;";
+        String code;
 
         try (
             var conn = DriverManager.getConnection(urlDB, userDB, passwordDB);
         ) {
-            String code = runner.query(conn, authCodeSQL, new ScalarHandler<>(), login);
-            return code;
-            //dashboardPage = verificationPage.validVerify(code);
+            code = runner.query(conn, authCodeSQL, new ScalarHandler<>(), login);
         }
+        return code;
     }
 
     @SneakyThrows
     public static String getExpiredAuthCode(String login) {
         var authCodeSQL = "SELECT code FROM auth_codes WHERE user_id = (SELECT id FROM users WHERE login = ?) ORDER BY created ASC LIMIT 1;";
+        String code;
 
         try (
             var conn = DriverManager.getConnection(urlDB, userDB, passwordDB);
         ) {
-            String code = runner.query(conn, authCodeSQL, new ScalarHandler<>(), login);
-            return code;
+            code = runner.query(conn, authCodeSQL, new ScalarHandler<>(), login);
         }
+        return code;
     }
 
     @SneakyThrows
