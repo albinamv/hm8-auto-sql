@@ -1,9 +1,8 @@
-package ru.netology.sql.data;
+package ru.netology.sql.helpers;
 
 import com.github.javafaker.Faker;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Value;
 
 @Getter

@@ -1,7 +1,6 @@
-package ru.netology.sql.page;
+package ru.netology.sql.pages;
 
 import com.codeborne.selenide.SelenideElement;
-import ru.netology.sql.data.DataHelper;
 
 import static com.codeborne.selenide.Condition.text;
 import static com.codeborne.selenide.Condition.visible;

@@ -1,8 +1,8 @@
-package ru.netology.sql.page;
+package ru.netology.sql.pages;
 
 import com.codeborne.selenide.SelenideElement;
 import org.openqa.selenium.Keys;
-import ru.netology.sql.data.DataHelper;
+import ru.netology.sql.helpers.DataHelper;
 
 import static com.codeborne.selenide.Condition.*;
 import static com.codeborne.selenide.Selenide.$;

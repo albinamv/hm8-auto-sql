@@ -8,15 +8,15 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import ru.netology.sql.data.DataHelper;
-import ru.netology.sql.data.DataHelper.AuthInfo;
-import ru.netology.sql.page.DashboardPage;
-import ru.netology.sql.page.LoginPage;
+import ru.netology.sql.helpers.DataHelper;
+import ru.netology.sql.helpers.DataHelper.AuthInfo;
+import ru.netology.sql.helpers.SQLHelper;
+import ru.netology.sql.pages.DashboardPage;
+import ru.netology.sql.pages.LoginPage;
 
 import java.sql.DriverManager;
 
 import static com.codeborne.selenide.Selenide.open;
-import static com.codeborne.selenide.Selenide.switchTo;
 
 class LoginTest {
     DashboardPage dashboardPage;
@@ -39,14 +39,8 @@ class LoginTest {
         registeredUserWithWrongPW = new DataHelper.AuthInfo(registeredUser.getLogin(), "Wrong_Password0");
 
         // добавляем в БД нового рандомного пользователя для проверки авторизации
-        var runner = new QueryRunner();
-        var dataSQL = "INSERT INTO users(id, login, password) VALUES (?, ?, ?);";
+        SQLHelper.insertUser(registeredUser.getId(), registeredUser.getLogin(), DataHelper.getValidPasswordHash());
 
-        try (
-            var conn = DriverManager.getConnection(urlDB, userDB, passwordDB);
-        ) {
-            runner.update(conn, dataSQL, registeredUser.getId(), registeredUser.getLogin(), DataHelper.getValidPasswordHash());
-        }
     }
 
     @BeforeEach
@@ -61,15 +55,10 @@ class LoginTest {
         var verificationPage = loginPage.validLogin(registeredUser); // логинимся
 
         // получаем последний код для пользователя с нужным логином
-        var authCodeSQL = "SELECT code FROM auth_codes WHERE user_id = (SELECT id FROM users WHERE login = ?) ORDER BY created DESC LIMIT 1;";
-        var runner = new QueryRunner();
+        // вводим его в VerificationPage
+        // и "пытаемся перейти" на DashboardPage
+        dashboardPage = verificationPage.validVerify(SQLHelper.getValidAuthCode(registeredUser.getLogin()));
 
-        try (
-            var conn = DriverManager.getConnection(urlDB, userDB, passwordDB);
-        ) {
-            String code = runner.query(conn, authCodeSQL, new ScalarHandler<>(), registeredUser.getLogin());
-            dashboardPage = verificationPage.validVerify(code);
-        }
     }
 
     @Test
@@ -91,43 +80,22 @@ class LoginTest {
     @Test
     @SneakyThrows
     void shouldNotVerifyWithExpiredCode() {
-        var verificationPage = loginPage.validLogin(registeredUser);ge
+        var verificationPage = loginPage.validLogin(registeredUser);
 
         // открываем страницу для авторизации заново
         open("http://localhost:9999");
         var newLoginPage = new LoginPage();
         var newVerificationPage = newLoginPage.validLogin(registeredUser);
 
-        // получаем первый код для пользователя с нужным логином
-        var authCodeSQL = "SELECT code FROM auth_codes WHERE user_id = (SELECT id FROM users WHERE login = ?) ORDER BY created ASC LIMIT 1;";
-        var runner = new QueryRunner();
-
-        try (
-            var conn = DriverManager.getConnection(urlDB, userDB, passwordDB);
-        ) {
-            String code = runner.query(conn, authCodeSQL, new ScalarHandler<>(), registeredUser.getLogin());
-            newVerificationPage.invalidVerify(code);
-        }
+        // получаем первый (недействительный) код для пользователя с нужным логином
+        // и вводим его на новой VerificationPage
+        newVerificationPage.invalidVerify(SQLHelper.getExpiredAuthCode(registeredUser.getLogin()));
     }
 
     @AfterAll
     @SneakyThrows
     static void cleanDB() {
-        var runner = new QueryRunner();
-        var clearUsersSQL = "DELETE FROM users;";
-        var clearCardsSQL = "DELETE FROM cards;";
-        var clearCodesSQL = "DELETE FROM auth_codes;";
-        var clearTransactionsSQL = "DELETE FROM card_transactions;";
-
-        try (
-            var conn = DriverManager.getConnection(urlDB, userDB, passwordDB);
-        ) {
-            // очистка таблиц в нужном порядке
-            runner.execute(conn, clearCodesSQL);
-            runner.execute(conn, clearTransactionsSQL);
-            runner.execute(conn, clearCardsSQL);
-            runner.execute(conn, clearUsersSQL);
-        }
+        SQLHelper.cleanDatabase();
     }
 
 }
